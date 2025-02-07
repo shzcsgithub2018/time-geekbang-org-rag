@@ -2,13 +2,37 @@ from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
+from .rag import *
+
 from .search import 查询
 
-from .models import 销售入账记录
+from .models import 对话记录, 销售入账记录
+
+def newtalk(request):
+    未结束的对话 = 对话记录.objects.filter(已结束=False)
+    for current in 未结束的对话:
+        current.已结束 = True
+    对话记录.objects.bulk_update(未结束的对话, ['已结束'])
+    return redirect(reverse('home:index'))
+
 
 def index(request):
     # return HttpResponse("home index")
-    return render(request, "home/index.html")
+    if request.method == 'POST':
+        用户输入 = request.POST['question']
+
+        查询参数 = 获取结构化数据查询参数(用户输入)
+        查询结果 = None
+        if 查询参数 is not None:
+            查询结果 = 查询(查询参数)
+
+        if 查询结果 is None:
+            从数据库查不到相关数据时的操作()
+        else:
+            根据查询结果回答用户输入(查询结果,用户输入)
+
+    conversation_list = 对话记录.objects.filter(已结束=False).order_by('created_time')
+    return render(request, "home/index.html",{"object_list":conversation_list})
 
 def salescheck(request):
     # return HttpResponse("home index")
